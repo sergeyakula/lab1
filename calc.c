@@ -5,13 +5,22 @@
 #include <stdio.h>
 #include <string.h>
 
-int main(int argc, char *argv[]) {
-    if (argc != 4 || strcmp(argv[1], "-o") != 0) {
+int main(int argc, char *argv[])
+{
+    if (argc != 4 || strcmp(argv[1], "-o") != 0)
+    {
         fprintf(stderr, "usage: calc -o OUTDIR input.txt\n");
         return 1;
     }
     const char *outdir = argv[2];
-    const char *input  = argv[3];
-    printf("outdir=%s input=%s\n", outdir, input);
+    const char *input = argv[3];
+    FILE *f = fopen(input, "rb");
+    if (f == NULL)
+    {
+        fprintf(stderr, "calc: cannot open %s\n", input);
+        return 1;
+    }
+    printf("opened %s, output goes to %s\n", input, outdir);
+    fclose(f);
     return 0;
 }
