@@ -39,7 +39,45 @@ int main(int argc, char *argv[])
     fclose(f);
     buf[len] = '\0';
 
-    printf("read %zu bytes from %s, output goes to %s\n", len, input, outdir);
+    (void)outdir; 
+
+    // op starts as +, so the first number is simply added to 0.
+    long long result = 0;
+    char op = '+';
+    size_t i = 0;
+
+    while (i < len && buf[i] != '\n')
+    {
+        char c = buf[i];
+        if (c == ' ' || c == '\t')
+        {
+            i++;
+        }
+        else if (c >= '0' && c <= '9')
+        {
+            long long num = 0;
+            while (i < len && buf[i] >= '0' && buf[i] <= '9')
+            {
+                num = num * 10 + (buf[i] - '0');
+                i++;
+            }
+            if (op == '+')
+                result += num;
+            else
+                result -= num;
+        }
+        else if (c == '+' || c == '-')
+        {
+            op = c;
+            i++;
+        }
+        else
+        {
+            i++; 
+        }
+    }
+
+    printf("%lld\n", result);
 
     free(buf);
     return 0;
