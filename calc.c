@@ -52,6 +52,7 @@ int main(int argc, char *argv[])
     snprintf(path, sizeof path, "%s/%.*s_sergejs_kruglovs_251RDC089.txt",
              outdir, (int)base_len, base);
 
+    // OUTDIR may already exist.
     if (mkdir(outdir, 0755) != 0 && errno != EEXIST)
     {
         fprintf(stderr, "calc: cannot create %s\n", outdir);
@@ -71,9 +72,10 @@ int main(int argc, char *argv[])
     long long result = 0;
     char op = '+';
     int has_number = 0; // Blank lines give no output.
+    size_t err_pos = 0; // 0 means no error.
     size_t i = 0;
 
-    while (i < len)
+    while (i < len && err_pos == 0)
     {
         char c = buf[i];
         if (c == '\n')
@@ -110,13 +112,29 @@ int main(int argc, char *argv[])
         }
         else
         {
-            i++;
+            // Invalid character: the error is at that character.
+            err_pos = i + 1;
         }
     }
 
     // Last line may have no \n at the end.
-    if (has_number)
+    if (err_pos == 0 && has_number)
         fprintf(out, "%lld\n", result);
+
+    // On error the file must contain only ERROR, so reopening with "w"
+    // clears the results written before.
+    if (err_pos != 0)
+    {
+        fclose(out);
+        out = fopen(path, "w");
+        if (out == NULL)
+        {
+            fprintf(stderr, "calc: cannot write %s\n", path);
+            free(buf);
+            return 1;
+        }
+        fprintf(out, "ERROR:%zu\n", err_pos);
+    }
 
     fclose(out);
     free(buf);
