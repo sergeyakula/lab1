@@ -2,9 +2,11 @@
 // https://github.com/sergeyakula/lab1
 // Compile with: gcc -O2 -Wall -Wextra -std=c17 -o calc calc.c -lm
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 int main(int argc, char *argv[])
 {
@@ -39,7 +41,31 @@ int main(int argc, char *argv[])
     fclose(f);
     buf[len] = '\0';
 
-    (void)outdir;
+    // Output name is the input name without folders and without .txt.
+    const char *base = strrchr(input, '/');
+    base = (base != NULL) ? base + 1 : input;
+    size_t base_len = strlen(base);
+    if (base_len >= 4 && strcmp(base + base_len - 4, ".txt") == 0)
+        base_len -= 4;
+
+    char path[4096];
+    snprintf(path, sizeof path, "%s/%.*s_sergejs_kruglovs_251RDC089.txt",
+             outdir, (int)base_len, base);
+
+    if (mkdir(outdir, 0755) != 0 && errno != EEXIST)
+    {
+        fprintf(stderr, "calc: cannot create %s\n", outdir);
+        free(buf);
+        return 1;
+    }
+
+    FILE *out = fopen(path, "w");
+    if (out == NULL)
+    {
+        fprintf(stderr, "calc: cannot write %s\n", path);
+        free(buf);
+        return 1;
+    }
 
     // op starts as +, so the first number is added to 0.
     long long result = 0;
@@ -53,7 +79,7 @@ int main(int argc, char *argv[])
         if (c == '\n')
         {
             if (has_number)
-                printf("%lld\n", result);
+                fprintf(out, "%lld\n", result);
             result = 0;
             op = '+';
             has_number = 0;
@@ -90,8 +116,9 @@ int main(int argc, char *argv[])
 
     // Last line may have no \n at the end.
     if (has_number)
-        printf("%lld\n", result);
+        fprintf(out, "%lld\n", result);
 
+    fclose(out);
     free(buf);
     return 0;
 }
