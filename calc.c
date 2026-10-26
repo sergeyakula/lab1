@@ -39,17 +39,27 @@ int main(int argc, char *argv[])
     fclose(f);
     buf[len] = '\0';
 
-    (void)outdir; 
+    (void)outdir;
 
-    // op starts as +, so the first number is simply added to 0.
+    // op starts as +, so the first number is added to 0.
     long long result = 0;
     char op = '+';
+    int has_number = 0; // Blank lines give no output.
     size_t i = 0;
 
-    while (i < len && buf[i] != '\n')
+    while (i < len)
     {
         char c = buf[i];
-        if (c == ' ' || c == '\t')
+        if (c == '\n')
+        {
+            if (has_number)
+                printf("%lld\n", result);
+            result = 0;
+            op = '+';
+            has_number = 0;
+            i++;
+        }
+        else if (c == ' ' || c == '\t')
         {
             i++;
         }
@@ -65,6 +75,7 @@ int main(int argc, char *argv[])
                 result += num;
             else
                 result -= num;
+            has_number = 1;
         }
         else if (c == '+' || c == '-')
         {
@@ -73,11 +84,13 @@ int main(int argc, char *argv[])
         }
         else
         {
-            i++; 
+            i++;
         }
     }
 
-    printf("%lld\n", result);
+    // Last line may have no \n at the end.
+    if (has_number)
+        printf("%lld\n", result);
 
     free(buf);
     return 0;
