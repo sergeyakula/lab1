@@ -71,8 +71,9 @@ int main(int argc, char *argv[])
     // op starts as +, so the first number is added to 0.
     long long result = 0;
     char op = '+';
-    int has_number = 0; // Blank lines give no output.
-    size_t err_pos = 0; // 0 means no error.
+    int has_number = 0;    // Blank lines give no output.
+    int expect_number = 1; // Each line must start with a number.
+    size_t err_pos = 0;    // 0 means no error.
     size_t i = 0;
 
     while (i < len && err_pos == 0)
@@ -80,11 +81,18 @@ int main(int argc, char *argv[])
         char c = buf[i];
         if (c == '\n')
         {
+            if (has_number && expect_number)
+            {
+                // Line ends after an operator: error at the \n.
+                err_pos = i + 1;
+                break;
+            }
             if (has_number)
                 fprintf(out, "%lld\n", result);
             result = 0;
             op = '+';
             has_number = 0;
+            expect_number = 1;
             i++;
         }
         else if (c == ' ' || c == '\t')
@@ -93,6 +101,12 @@ int main(int argc, char *argv[])
         }
         else if (c >= '0' && c <= '9')
         {
+            if (!expect_number)
+            {
+                // Two numbers in a row: error at the second one.
+                err_pos = i + 1;
+                break;
+            }
             long long num = 0;
             while (i < len && buf[i] >= '0' && buf[i] <= '9')
             {
@@ -104,10 +118,18 @@ int main(int argc, char *argv[])
             else
                 result -= num;
             has_number = 1;
+            expect_number = 0;
         }
         else if (c == '+' || c == '-')
         {
+            if (expect_number)
+            {
+                // Operator where a number is needed: error at the operator.
+                err_pos = i + 1;
+                break;
+            }
             op = c;
+            expect_number = 1;
             i++;
         }
         else
@@ -116,6 +138,10 @@ int main(int argc, char *argv[])
             err_pos = i + 1;
         }
     }
+
+    // File ends after an operator with no \n: position is len + 1.
+    if (err_pos == 0 && has_number && expect_number)
+        err_pos = len + 1;
 
     // Last line may have no \n at the end.
     if (err_pos == 0 && has_number)
